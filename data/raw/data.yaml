@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 6
+names: ['Dragonfly Doji', 'Gravestone Doji', 'Hammer', 'Hanging Man', 'Marubozu', 'Spinning Top']
+
+roboflow:
+  workspace: duokan
+  project: ahihi-m5uvy
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/duokan/ahihi-m5uvy/dataset/1

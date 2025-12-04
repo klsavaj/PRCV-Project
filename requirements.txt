@@ -1,0 +1,105 @@
+# =============================================================================
+# Candlestick Pattern Detection - Dependencies
+# =============================================================================
+# Course: CS5330 - Pattern Recognition and Computer Vision
+# 
+# Installation: pip install -r requirements.txt
+# Python Version: 3.11 recommended
+#
+# Note: For cluster environments with GPU, ensure CUDA toolkit is installed
+# before installing PyTorch. The cluster should have CUDA 11.8+ or CUDA 12.1+
+# for optimal compatibility with recent PyTorch versions.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Core Deep Learning Stack
+# -----------------------------------------------------------------------------
+# PyTorch serves as the backbone for YOLOv8. We use torch 2.1+ because it fully
+# supports Python 3.11 and is compatible with ultralytics.
+torch>=2.1.0
+torchvision>=0.16.0
+
+# Ultralytics provides the YOLOv8 implementation. This package handles model
+# architecture, training, augmentation, and inference.
+# Docs: https://docs.ultralytics.com/
+ultralytics>=8.1.0
+
+
+# -----------------------------------------------------------------------------
+# Data Manipulation
+# -----------------------------------------------------------------------------
+# NumPy for numerical operations - essential for image array manipulation
+# and bounding box coordinate transformations
+numpy>=1.26.0
+
+# Pandas handles our stock market OHLCV data
+pandas>=2.2.0
+
+# SciPy provides statistical functions used in evaluation metrics
+scipy>=1.12.0
+
+
+# -----------------------------------------------------------------------------
+# Visualization Libraries
+# -----------------------------------------------------------------------------
+# Matplotlib is the foundation for all plotting
+matplotlib>=3.8.0
+
+# mplfinance for financial candlestick plotting
+# Version 0.12.10b0 is the latest working build for Python 3.11
+mplfinance>=0.12.10b0
+
+# Seaborn for statistical plots (confusion matrices, distributions)
+seaborn>=0.13.0
+
+
+# -----------------------------------------------------------------------------
+# Image Processing
+# -----------------------------------------------------------------------------
+# OpenCV handles image I/O, color conversions, drawing, etc.
+opencv-python>=4.9.0
+
+# Pillow for basic image processing and format conversion
+Pillow>=10.0.0
+
+
+# -----------------------------------------------------------------------------
+# Web Application Stack
+# -----------------------------------------------------------------------------
+# Flask for REST API backend
+flask>=3.0.0
+
+# CORS middleware so frontend can talk to Flask backend
+flask-cors>=4.0.0
+
+
+# -----------------------------------------------------------------------------
+# External APIs
+# -----------------------------------------------------------------------------
+# Requests library for Alpha Vantage API calls
+requests>=2.31.0
+
+
+# -----------------------------------------------------------------------------
+# Configuration and Utilities
+# -----------------------------------------------------------------------------
+# PyYAML for parsing dataset configs
+PyYAML>=6.0.1
+
+# Roboflow for dataset downloading
+roboflow
+
+# Progress bars during training
+tqdm>=4.66.0
+
+# Loads environment variables from .env file
+python-dotenv>=1.0.1
+
+
+# -----------------------------------------------------------------------------
+# Jupyter Environment
+# -----------------------------------------------------------------------------
+# Required for running notebooks on cluster
+ipykernel>=6.29.0
+ipywidgets>=8.1.1

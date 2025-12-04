@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕯️ Candlestick Pattern Detector</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader { border-top-color: #3b82f6; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🕯️</span>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">Candlestick Pattern Detector</h1>
+                        <p class="text-xs text-gray-500">Powered by YOLOv8 & Alpha Vantage</p>
+                    </div>
+                </div>
+                <button onclick="toggleSettings()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-6">
+        
+        <!-- Settings Panel (Hidden by default) -->
+        <div id="settingsPanel" class="hidden bg-white rounded-xl border border-gray-200 p-5 mb-6 fade-in">
+            <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span>⚙️</span> Settings
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Alpha Vantage API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter your API key"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <a href="https://www.alphavantage.co/support/#api-key" target="_blank" 
+                        class="text-xs text-blue-600 hover:underline mt-1 inline-block">Get free API key →</a>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Candles: <span id="candlesValue">50</span>
+                    </label>
+                    <input type="range" id="numCandles" min="20" max="100" value="50"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        oninput="document.getElementById('candlesValue').textContent = this.value">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Confidence: <span id="confValue">25</span>%
+                    </label>
+                    <input type="range" id="confidence" min="10" max="90" value="25"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        oninput="document.getElementById('confValue').textContent = this.value">
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1 relative">
+                    <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input type="text" id="symbolInput" value="AAPL" placeholder="Enter stock symbol (e.g., AAPL)"
+                        class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-medium uppercase"
+                        onkeypress="if(event.key === 'Enter') analyzeStock()">
+                </div>
+                <button onclick="analyzeStock()" id="analyzeBtn"
+                    class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all">
+                    <span id="btnText">🔍 Analyze</span>
+                    <div id="btnLoader" class="hidden loader border-4 border-white border-t-transparent rounded-full w-5 h-5"></div>
+                </button>
+            </div>
+            
+            <!-- Quick Symbols -->
+            <div class="flex flex-wrap gap-2 mt-4">
+                <span class="text-sm text-gray-500 mr-2">Quick select:</span>
+                <button onclick="selectSymbol('AAPL')" class="symbol-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors">AAPL</button>
+                <button onclick="selectSymbol('GOOGL')" class="symbol-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors">GOOGL</button>
+                <button onclick="selectSymbol('MSFT')" class="symbol-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors">MSFT</button>
+                <button onclick="selectSymbol('TSLA')" class="symbol-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors">TSLA</button>
+                <button onclick="selectSymbol('AMZN')" class="symbol-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors">AMZN</button>
+                <button onclick="selectSymbol('NVDA')" class="symbol-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors">NVDA</button>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 mb-6 fade-in">
+            <div class="flex items-center gap-3">
+                <span class="text-red-500 text-xl">⚠️</span>
+                <p id="errorText" class="text-red-700"></p>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Charts Column -->
+                <div class="lg:col-span-2 space-y-5">
+                    
+                    <!-- Original Chart -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span>📊</span> <span id="chartTitle">Stock Chart</span>
+                        </h3>
+                        <div id="originalChart" class="rounded-lg overflow-hidden bg-gray-50 min-h-64 flex items-center justify-center">
+                            <p class="text-gray-400">Chart will appear here</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Annotated Chart -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span>🎯</span> Detected Patterns Overlay
+                        </h3>
+                        <div id="annotatedChart" class="rounded-lg overflow-hidden bg-gray-50 min-h-64 flex items-center justify-center">
+                            <p class="text-gray-400">Annotated chart will appear here</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Price Data Table -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span>📋</span> Recent Price Data
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-3 font-semibold text-gray-600">Date</th>
+                                        <th class="text-right py-3 px-3 font-semibold text-gray-600">Open</th>
+                                        <th class="text-right py-3 px-3 font-semibold text-gray-600">High</th>
+                                        <th class="text-right py-3 px-3 font-semibold text-gray-600">Low</th>
+                                        <th class="text-right py-3 px-3 font-semibold text-gray-600">Close</th>
+                                        <th class="text-right py-3 px-3 font-semibold text-gray-600">Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="priceTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detections Column -->
+                <div class="space-y-5">
+                    
+                    <!-- Detected Patterns -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <span>🎯</span> Detected Patterns
+                            <span id="detectionCount" class="ml-auto text-sm font-normal text-gray-500">(0)</span>
+                        </h3>
+                        <div id="detectionsList" class="space-y-3">
+                            <p class="text-gray-400 text-center py-4">No patterns detected yet</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Signal Legend -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span>📚</span> Signal Legend
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <span class="w-4 h-4 rounded-full bg-green-500"></span>
+                                <span class="text-sm text-gray-700">🟢 Bullish - Potential Buy Signal</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="w-4 h-4 rounded-full bg-red-500"></span>
+                                <span class="text-sm text-gray-700">🔴 Bearish - Potential Sell Signal</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="w-4 h-4 rounded-full bg-gray-500"></span>
+                                <span class="text-sm text-gray-700">⚪ Neutral - Hold/Watch</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tips -->
+                    <div class="bg-blue-50 rounded-xl border border-blue-100 p-5">
+                        <h3 class="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                            <span>💡</span> Tips
+                        </h3>
+                        <ul class="text-sm text-blue-800 space-y-1">
+                            <li>• Lower confidence = more detections</li>
+                            <li>• More candles = longer time period</li>
+                            <li>• Free API: 25 requests/day</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div class="text-6xl mb-4">📈</div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Ready to Analyze</h3>
+            <p class="text-gray-500 mb-4">Enter a stock symbol and click Analyze to detect candlestick patterns</p>
+            <p class="text-sm text-gray-400">💡 Don't forget to add your API key in Settings (gear icon)</p>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-6xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
+            CS5330 - Pattern Recognition & Computer Vision | Candlestick Pattern Detection with YOLOv8
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // API Base URL - Change this if your Flask backend runs on different port
+        const API_BASE = '';
+
+        // Toggle settings panel
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        // Select symbol from quick buttons
+        function selectSymbol(symbol) {
+            document.getElementById('symbolInput').value = symbol;
+            // Highlight selected button
+            document.querySelectorAll('.symbol-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'text-blue-700');
+                btn.classList.add('bg-gray-100', 'text-gray-600');
+            });
+            event.target.classList.remove('bg-gray-100', 'text-gray-600');
+            event.target.classList.add('bg-blue-100', 'text-blue-700');
+        }
+
+        // Show error message
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            document.getElementById('errorText').textContent = message;
+            alert.classList.remove('hidden');
+            setTimeout(() => alert.classList.add('hidden'), 5000);
+        }
+
+        // Hide error
+        function hideError() {
+            document.getElementById('errorAlert').classList.add('hidden');
+        }
+
+        // Set loading state
+        function setLoading(loading) {
+            const btn = document.getElementById('analyzeBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            
+            btn.disabled = loading;
+            btnText.textContent = loading ? 'Analyzing...' : '🔍 Analyze';
+            btnLoader.classList.toggle('hidden', !loading);
+        }
+
+        // Format number with commas
+        function formatNumber(num) {
+            return new Intl.NumberFormat().format(num);
+        }
+
+        // Main analyze function
+        async function analyzeStock() {
+            hideError();
+            
+            const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const numCandles = document.getElementById('numCandles').value;
+            const confidence = document.getElementById('confidence').value / 100;
+
+            // Validation
+            if (!symbol) {
+                showError('Please enter a stock symbol');
+                return;
+            }
+            if (!apiKey) {
+                showError('Please enter your Alpha Vantage API key in Settings');
+                toggleSettings();
+                return;
+            }
+
+            setLoading(true);
+            document.getElementById('emptyState').classList.add('hidden');
+
+            try {
+                const response = await fetch(`./api/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        apiKey: apiKey,
+                        numCandles: parseInt(numCandles),
+                        confidence: confidence
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    setLoading(false);
+                    return;
+                }
+
+                // Display results
+                displayResults(data);
+
+            } catch (error) {
+                showError('Failed to connect to backend. Make sure Flask server is running on ' + API_BASE);
+                console.error('Error:', error);
+            }
+
+            setLoading(false);
+        }
+
+        // Display results
+        function displayResults(data) {
+            // Show results section
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+
+            // Update chart title
+            document.getElementById('chartTitle').textContent = `${data.symbol} - Candlestick Chart`;
+
+            // Display original chart
+            const originalChartDiv = document.getElementById('originalChart');
+            if (data.originalChart) {
+                originalChartDiv.innerHTML = `<img src="data:image/png;base64,${data.originalChart}" alt="Original Chart" class="w-full">`;
+            }
+
+            // Display annotated chart
+            const annotatedChartDiv = document.getElementById('annotatedChart');
+            if (data.annotatedChart) {
+                annotatedChartDiv.innerHTML = `<img src="data:image/png;base64,${data.annotatedChart}" alt="Annotated Chart" class="w-full">`;
+            }
+
+            // Display detections
+            displayDetections(data.detections);
+
+            // Display price table
+            displayPriceTable(data.recentData);
+        }
+
+        // Display detected patterns
+        function displayDetections(detections) {
+            const container = document.getElementById('detectionsList');
+            const countSpan = document.getElementById('detectionCount');
+            
+            countSpan.textContent = `(${detections.length})`;
+
+            if (detections.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-gray-400">
+                        <p>No patterns detected</p>
+                        <p class="text-sm mt-1">Try lowering the confidence threshold</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = detections.map((det, idx) => {
+                const sentimentEmoji = det.sentiment === 'BULLISH' ? '🟢' : 
+                                       det.sentiment === 'BEARISH' ? '🔴' : '⚪';
+                const bgColor = det.sentiment === 'BULLISH' ? 'bg-green-50 border-green-200' : 
+                               det.sentiment === 'BEARISH' ? 'bg-red-50 border-red-200' : 
+                               'bg-gray-50 border-gray-200';
+                
+                return `
+                    <div class="p-4 rounded-lg border ${bgColor} transition-all hover:shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-gray-900">${det.pattern}</span>
+                            <span class="text-sm font-medium px-2 py-1 rounded-full" 
+                                  style="background-color: ${det.color}20; color: ${det.color}">
+                                ${sentimentEmoji} ${det.sentiment}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-gray-200 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full transition-all" 
+                                     style="width: ${det.confidence}%; background-color: ${det.color}"></div>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700 w-14 text-right">${det.confidence}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Display price table
+        function displayPriceTable(priceData) {
+            const tbody = document.getElementById('priceTableBody');
+            
+            if (!priceData || Object.keys(priceData).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-400">No data available</td></tr>';
+                return;
+            }
+
+            // Sort by date descending
+            const sortedDates = Object.keys(priceData).sort((a, b) => new Date(b) - new Date(a));
+
+            tbody.innerHTML = sortedDates.slice(0, 5).map(date => {
+                const d = priceData[date];
+                const changeColor = d.Close >= d.Open ? 'text-green-600' : 'text-red-600';
+                
+                return `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-3 text-gray-900 font-medium">${date.split('T')[0]}</td>
+                        <td class="py-3 px-3 text-right text-gray-600">$${d.Open.toFixed(2)}</td>
+                        <td class="py-3 px-3 text-right text-green-600 font-medium">$${d.High.toFixed(2)}</td>
+                        <td class="py-3 px-3 text-right text-red-600 font-medium">$${d.Low.toFixed(2)}</td>
+                        <td class="py-3 px-3 text-right ${changeColor} font-semibold">$${d.Close.toFixed(2)}</td>
+                        <td class="py-3 px-3 text-right text-gray-500">${formatNumber(Math.round(d.Volume))}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Initialize - check if API key is in localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('alphaVantageKey');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+            }
+            
+            // Save API key when changed
+            document.getElementById('apiKey').addEventListener('change', (e) => {
+                localStorage.setItem('alphaVantageKey', e.target.value);
+            });
+        });
+    </script>
+
+</body>
+</html>
